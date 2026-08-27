@@ -552,6 +552,16 @@ th.num { text-align: right; }
 .stage-meta { margin-left: auto; color: var(--text-3); font-size: 11.5px; white-space: nowrap; }
 .stage-now { color: var(--accent); font-weight: 600; }
 
+.stage-passes { display: flex; align-items: stretch; gap: 2px; height: 13px; }
+.stage-pass {
+    width: 3px;
+    border-radius: 999px;
+    background: var(--border-strong);
+}
+.stage-pass.is-done { background: var(--ok); }
+.stage-pass.is-failed { background: var(--err); }
+.stage-pass.is-active { background: var(--accent); animation: hfcd-pulse 1.8s ease-in-out infinite; }
+
 .stage.is-done { border-color: color-mix(in srgb, var(--ok) 34%, transparent); background: var(--ok-soft); }
 .stage.is-done .stage-dot { background: var(--ok); border-color: var(--ok); }
 .stage.is-done .stage-label { color: var(--ok); }

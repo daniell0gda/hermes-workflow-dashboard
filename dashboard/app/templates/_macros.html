@@ -127,10 +127,27 @@
       title="{{ stage.label }} — {{ STAGE_STATE_TEXT.get(stage.state, stage.state) }}{% if stage.passes > 1 %}, {{ stage.passes }} passes{% endif %}">
     <span class="stage-dot" aria-hidden="true"></span>
     <span class="stage-label">{{ stage.label }}</span>
+    {{ stage_passes(stage) }}
     {% if not compact %}{{ stage_meta(stage) }}{% endif %}
   </li>
   {% endfor %}
 </ol>
+{% endif %}
+{% endmacro %}
+
+
+{#
+  One bar per pass through a stage, oldest on the left, each in the colour of
+  how that pass ended. A stage entered only once says everything through its own
+  colour already, so the strip appears from the second pass on.
+#}
+{% macro stage_passes(stage) %}
+{% set states = stage.pass_states or [] %}
+{% if states | length > 1 %}
+{% set summary %}{% for state in states %}{{ loop.index }}: {{ STAGE_STATE_TEXT.get(state, state) }}{{ ' · ' if not loop.last }}{% endfor %}{% endset %}
+<span class="stage-passes" role="img" title="{{ summary }}" aria-label="Passes — {{ summary }}">
+  {%- for state in states %}<span class="stage-pass is-{{ state }}"></span>{% endfor -%}
+</span>
 {% endif %}
 {% endmacro %}
 

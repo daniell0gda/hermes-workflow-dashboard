@@ -73,6 +73,27 @@ class TestStages:
         assert states["check"] == workflow.SKIPPED
         assert states["report"] == workflow.SKIPPED
 
+    def test_stage_recovered_after_a_failed_pass_is_done(self) -> None:
+        """The latest pass decides the verdict, not the worst one."""
+        run = {"status": "completed", "started_at": "2026-08-25 10:00:00", "graph": GRAPH}
+        events = [
+            {"node": "code", "status": "failed", "duration_ms": 2000},
+            {"node": "code", "status": "completed", "duration_ms": 1000},
+        ]
+
+        assert stage_map(workflow.stages(run, events))["code"] == workflow.DONE
+
+    def test_stage_retried_after_a_failed_pass_is_active(self) -> None:
+        run = {
+            "status": "running",
+            "active_node": "code",
+            "started_at": "2026-08-25 10:00:00",
+            "graph": GRAPH,
+        }
+        events = [{"node": "code", "status": "failed", "duration_ms": 2000}]
+
+        assert stage_map(workflow.stages(run, events))["code"] == workflow.ACTIVE
+
     def test_repeated_stage_reports_passes_and_total_duration(self) -> None:
         run = {"status": "completed", "started_at": "2026-08-25 10:00:00", "graph": GRAPH}
         events = [
@@ -112,6 +133,40 @@ class TestStages:
         run = {"status": "running", "active_node": "code", "phase": "code", "started_at": None, "graph": None}
 
         assert stage_map(workflow.stages(run, []))["code"] == workflow.ACTIVE
+
+
+class TestPassStates:
+    def test_every_pass_keeps_its_own_verdict(self) -> None:
+        run = {"status": "completed", "started_at": "2026-08-25 10:00:00", "graph": GRAPH}
+        events = [
+            {"node": "code", "status": "failed"},
+            {"node": "code", "status": "completed"},
+        ]
+
+        code = next(stage for stage in workflow.stages(run, events) if stage["key"] == "code")
+
+        assert code["pass_states"] == [workflow.FAILED, workflow.DONE]
+
+    def test_the_pass_now_running_counts_as_one_more(self) -> None:
+        """The active pass has not reported an event yet, so nothing else lists it."""
+        run = {
+            "status": "running",
+            "active_node": "code",
+            "started_at": "2026-08-25 10:00:00",
+            "graph": GRAPH,
+        }
+        events = [{"node": "code", "status": "completed"}]
+
+        code = next(stage for stage in workflow.stages(run, events) if stage["key"] == "code")
+
+        assert code["pass_states"] == [workflow.DONE, workflow.ACTIVE]
+
+    def test_a_stage_nobody_reached_has_no_passes(self) -> None:
+        run = {"status": "completed", "started_at": "2026-08-25 10:00:00", "graph": GRAPH}
+
+        check = next(stage for stage in workflow.stages(run, []) if stage["key"] == "check")
+
+        assert check["pass_states"] == []
 
 
 class TestActiveSince:

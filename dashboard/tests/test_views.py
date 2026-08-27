@@ -132,6 +132,14 @@ class TestRunDetail:
         assert "Implement" in body
         assert "is-done" in body
 
+    def test_shows_one_bar_per_pass_of_a_repeated_stage(self, client: TestClient, auth: dict) -> None:
+        publish(client, auth)
+
+        body = client.get(f"/run/{RUN_ID}").text
+
+        # The demo run codes twice, so the Implement stage carries two bars.
+        assert body.count('class="stage-pass is-done"') == 2
+
     def test_renders_report_markdown(self, client: TestClient, auth: dict) -> None:
         publish(client, auth)
 

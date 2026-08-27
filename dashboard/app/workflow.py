@@ -90,6 +90,7 @@ def stages(run: Mapping[str, Any], events: Sequence[Mapping[str, Any]]) -> list[
                 "key": key,
                 "label": text,
                 "state": state,
+                "pass_states": _pass_states(stage_events, state),
                 "passes": len(stage_events),
                 "duration_ms": _total_duration(stage_events),
                 "since": since if state == ACTIVE else None,
@@ -163,21 +164,41 @@ def _state(
     running: bool,
     run: Mapping[str, Any],
 ) -> str:
-    for event in stage_events:
-        if str(event.get("status") or "").lower() in FAILURE_STATES:
-            return FAILED
+    """A stage stands where its latest pass left it.
 
+    A pass that failed and was retried is history, not the verdict: a stage
+    running again reads as active, and one whose retry succeeded reads as done.
+    The individual verdicts survive in ``pass_states``.
+    """
     if running and key == active:
         return ACTIVE
 
     if stage_events:
-        return DONE
+        return _pass_state(stage_events[-1])
 
     # The start stage leaves no event behind; the run beginning is the proof.
     if key == "start" and run.get("started_at"):
         return DONE
 
     return PENDING if running else SKIPPED
+
+
+def _pass_state(event: Mapping[str, Any]) -> str:
+    failed = str(event.get("status") or "").lower() in FAILURE_STATES
+
+    return FAILED if failed else DONE
+
+
+def _pass_states(stage_events: Sequence[Mapping[str, Any]], state: str) -> list[str]:
+    """One verdict per pass, oldest first.
+
+    The pass now running has not reported an event yet, so it is added by hand.
+    """
+    history = [_pass_state(event) for event in stage_events]
+    if state == ACTIVE:
+        history.append(ACTIVE)
+
+    return history
 
 
 def _active_since(run: Mapping[str, Any], events: Sequence[Mapping[str, Any]]) -> str | None:
