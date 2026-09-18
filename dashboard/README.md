@@ -260,6 +260,13 @@ The worker does not report these; they are computed once at publish time.
   dashboard ignored (it reported "Unavailable"). Cost stays blank while every
   invocation reports `cost_status: unknown`, because the `0.0` in that case is a
   placeholder, not a real $0.00.
+- **spend today / this week / this month**, alongside the all-time total, from
+  the cost of the runs that began in each window — the run's own start, falling
+  back to when it was published. Derived on read, so the windows roll over on
+  their own. Days, weeks and months are the container's local ones (the week
+  starting Monday), matching the timezone every absolute time is displayed in.
+  A window holding no priced run reads as a dash, not $0.00. `/api/summary`
+  carries the three figures under `spend`.
 - **the originating issue and its project**, resolved best-evidence-first:
   1. `issue_url` / `issue_number` / `project` stated outright in the publish
      payload;

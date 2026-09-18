@@ -61,9 +61,17 @@ DONE_FILTERS = {"yes": "done = 1", "no": "done = 0"}
 # A run nobody has reported an issue state for is neither open nor closed.
 ISSUE_REPORTED_SQL = "gh_status IS NOT NULL AND gh_status != ''"
 
+# When a run counts as having happened: what it cost is spent as it starts, and
+# a run that never stated a start is placed where the list already orders it.
+RUN_MOMENT_SQL = "COALESCE(started_at, updated_at)"
+
 
 def _rows(cursor: sqlite3.Cursor) -> list[dict[str, Any]]:
     return [dict(row) for row in cursor.fetchall()]
+
+
+def _optional_float(value: Any) -> float | None:
+    return None if value is None else float(value)
 
 
 def _status_condition(status: str) -> tuple[str, list[Any]] | None:
@@ -203,7 +211,7 @@ class Repository:
         rows = _rows(
             self._connection.execute(
                 f"SELECT * FROM runs {where} "
-                "ORDER BY COALESCE(started_at, updated_at) DESC, rowid DESC "
+                f"ORDER BY {RUN_MOMENT_SQL} DESC, rowid DESC "
                 "LIMIT ? OFFSET ?",
                 [*params, per_page, (page - 1) * per_page],
             )
@@ -232,7 +240,7 @@ class Repository:
         return _rows(
             self._connection.execute(
                 f"SELECT * FROM runs WHERE {LIVE_SQL} "
-                "ORDER BY COALESCE(started_at, updated_at) DESC LIMIT ?",
+                f"ORDER BY {RUN_MOMENT_SQL} DESC LIMIT ?",
                 (formatting.abandoned_cutoff(), limit),
             )
         )
@@ -278,10 +286,30 @@ class Repository:
             "revisions": integer("revisions"),
             "worker_calls": integer("worker_calls"),
             "avg_duration_ms": None if row["avg_duration_ms"] is None else round(row["avg_duration_ms"]),
-            "cost_usd": None if row["cost_usd"] is None else float(row["cost_usd"]),
+            "cost_usd": _optional_float(row["cost_usd"]),
+            "spend": self.spend(),
             "input_tokens": optional_int("input_tokens"),
             "output_tokens": optional_int("output_tokens"),
         }
+
+    def spend(self) -> dict[str, float | None]:
+        """What the runs have cost today, this week and this month.
+
+        A period holding no priced run at all sums to NULL and is reported as
+        no data rather than as $0.00, exactly as the all-time total is.
+        """
+        starts = formatting.period_starts()
+        row = self._connection.execute(
+            f"""
+            SELECT SUM(CASE WHEN {RUN_MOMENT_SQL} >= ? THEN cost_usd END) AS today,
+                   SUM(CASE WHEN {RUN_MOMENT_SQL} >= ? THEN cost_usd END) AS week,
+                   SUM(CASE WHEN {RUN_MOMENT_SQL} >= ? THEN cost_usd END) AS month
+            FROM runs
+            """,
+            (starts["today"], starts["week"], starts["month"]),
+        ).fetchone()
+
+        return {period: _optional_float(row[period]) for period in ("today", "week", "month")}
 
     # -------------------------------------------------------------- events
 

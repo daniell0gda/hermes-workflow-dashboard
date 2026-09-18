@@ -32,14 +32,39 @@ def abandoned_cutoff() -> str:
     Storage format, so a query can compare it against ``heartbeat_at`` as text
     and reach the same verdict as :func:`health` does on read.
     """
-    return (utc_now() - timedelta(seconds=ABANDONED_AFTER_SECONDS)).strftime(STORAGE_FORMAT)
+    return _storage_text(utc_now() - timedelta(seconds=ABANDONED_AFTER_SECONDS))
+
+
+def period_starts(now: datetime | None = None) -> dict[str, str]:
+    """Storage-format start of today, of this week and of this month.
+
+    The boundaries are local midnights, because that is what a reader means by
+    "today" and the local day is what :func:`absolute` already renders. The week
+    starts on Monday, following the ISO calendar. Each midnight is dropped to a
+    naive wall clock first, so converting it back to UTC picks the offset in
+    force at that midnight rather than the one in force now.
+    """
+    midnight = (now or utc_now()).astimezone().replace(
+        hour=0, minute=0, second=0, microsecond=0, tzinfo=None
+    )
+
+    return {
+        "today": _storage_text(midnight),
+        "week": _storage_text(midnight - timedelta(days=midnight.weekday())),
+        "month": _storage_text(midnight.replace(day=1)),
+    }
 
 
 def to_storage(value: Any) -> str | None:
     """Normalise an ISO-8601 timestamp from the worker into storage form."""
     parsed = parse_any(value)
 
-    return None if parsed is None else parsed.astimezone(timezone.utc).strftime(STORAGE_FORMAT)
+    return None if parsed is None else _storage_text(parsed)
+
+
+def _storage_text(moment: datetime) -> str:
+    """Storage form of a moment. A naive one is read as local time."""
+    return moment.astimezone(timezone.utc).strftime(STORAGE_FORMAT)
 
 
 def parse_any(value: Any) -> datetime | None:

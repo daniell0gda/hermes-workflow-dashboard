@@ -32,9 +32,19 @@
   {{ ui.metric('Worker calls', summary.worker_calls | count) }}
 </dl>
 
+{# Spend by period, so the bill is readable without doing the arithmetic. Days,
+   weeks and months are local ones; a period with no priced run reads as a dash. #}
+{% if summary.cost_usd is not none %}
+<dl class="metrics metrics-secondary">
+  {{ ui.metric('Spent today', summary.spend.today | money) }}
+  {{ ui.metric('Spent this week', summary.spend.week | money) }}
+  {{ ui.metric('Spent this month', summary.spend.month | money) }}
+  {{ ui.metric('Total cost', summary.cost_usd | money) }}
+</dl>
+{% endif %}
+
 {% if summary.cost_usd is not none or summary.input_tokens is not none %}
 <dl class="metrics metrics-secondary">
-  {{ ui.metric('Total cost', summary.cost_usd | money) }}
   {{ ui.metric('Input tokens', summary.input_tokens | tokens) }}
   {{ ui.metric('Output tokens', summary.output_tokens | tokens) }}
   {{ ui.metric('Revisions', summary.revisions | count) }}
