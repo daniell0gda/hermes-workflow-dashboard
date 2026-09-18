@@ -29,7 +29,7 @@ than quietly filling the container's ephemeral layer.
 | `app/` | The application (FastAPI, Jinja2, SQLite, Pillow, markdown-it). |
 | `clients/publish_snapshot.py` | Publishes a snapshot directory. Drop-in for `GitDeployment`. |
 | `clients/status_http.py` | Status / heartbeat pings during a run. |
-| `tests/` | 245 tests, including end-to-end runs against the real published snapshots. |
+| `tests/` | The test suite. |
 | `Dockerfile`, `compose.yaml` | Build and deploy. |
 
 ## Getting the image onto the NAS
@@ -330,9 +330,3 @@ pytest
 
 HFCD_API_KEY=dev HFCD_DATA_DIR=./data python -m app
 ```
-
-The suite includes `tests/test_real_snapshot.py`, which drives the real
-publisher client over the run snapshots in this repository — it verifies the
-derived metrics against the source JSON, the animated-GIF handling on a real
-worker-produced GIF, and that a payload can be built for every published run.
-Those tests skip automatically if the snapshots are not present.

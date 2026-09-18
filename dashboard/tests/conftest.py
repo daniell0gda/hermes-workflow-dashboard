@@ -15,9 +15,6 @@ from app.repository import Repository
 
 API_KEY = "test-api-key"
 
-# The published dashboard snapshot that lives two levels up in this repo.
-SNAPSHOT_ROOT = Path(__file__).resolve().parents[2]
-
 
 @pytest.fixture
 def settings(tmp_path: Path) -> Settings:
