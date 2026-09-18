@@ -60,7 +60,6 @@ from Docker Hub and fails. Rebuild and redeploy the app to update.
 ### Option B — push to a registry
 
 ```sh
-cd dashboard
 docker build -t ghcr.io/<you>/hermes-dashboard:latest .
 docker push ghcr.io/<you>/hermes-dashboard:latest
 ```
@@ -323,7 +322,6 @@ The worker does not report these; they are computed once at publish time.
 ## Development
 
 ```sh
-cd dashboard
 python -m venv .venv && . .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -r requirements-dev.txt
 pytest
