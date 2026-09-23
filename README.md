@@ -1,6 +1,6 @@
-# Hermes feature-check dashboard
+# Hermes Team Workflow dashboard
 
-A single-container dashboard for feature-check runs. The worker publishes
+A single-container dashboard for Team Workflow runs. The worker publishes
 **data** over an authenticated API; the app stores it in SQLite and renders the
 views itself, so changing the design never requires republishing a run.
 
@@ -35,34 +35,62 @@ than quietly filling the container's ephemeral layer.
 ## Getting the image onto the NAS
 
 A Custom App installs from a compose file, which names an image — it cannot
-build one for you. Pick one of these. The image installs no compiler and pulls
-five pinned wheels, so a build takes seconds either way.
+build one for you. Pick one of these. The build context is **the repository
+root** (where the `Dockerfile` is); the image copies only `requirements.txt`
+and `app/`. There is no compiler step: the five pinned requirements resolve to
+about two dozen packages, all prebuilt wheels, so the `pip install` layer takes
+around 20 seconds on a normal connection.
+
+`tank` in the paths below stands for your pool; `/mnt/tank/...` paths are
+examples, so use your own datasets.
 
 ### Option A — build on the NAS (no registry, no login)
 
-TrueNAS SCALE's Apps are Docker-based, so the daemon is already there. Copy this
-directory to a dataset and build in place:
+Needs TrueNAS SCALE **24.10 (Electric Eel) or later**, where Apps run on
+Docker. Earlier releases run Apps on Kubernetes and have no `docker` command.
 
-```sh
-docker build -t hermes-dashboard:latest /mnt/tank/src/dashboard
-```
+1. Put the repository on a dataset, from the NAS shell (System → Shell, or SSH):
 
-Then in the compose file use the local tag and stop Docker looking upstream:
+   ```sh
+   git clone https://github.com/daniell0gda/hermes-feature-check-dashboard.git \
+       /mnt/tank/src/hermes-dashboard
+   ```
 
-```yaml
-image: hermes-dashboard:latest
-pull_policy: never
-```
+   Copying the repository over an SMB share works just as well; what matters is
+   that the directory you build contains the `Dockerfile` and `app/`.
 
-Without `pull_policy: never` the install tries to pull `hermes-dashboard:latest`
-from Docker Hub and fails. Rebuild and redeploy the app to update.
+2. Build it. As the `admin` user, Docker needs `sudo`:
+
+   ```sh
+   sudo docker build -t hermes-dashboard:latest /mnt/tank/src/hermes-dashboard
+   ```
+
+3. In the compose file, use the local tag and turn off pulling:
+
+   ```yaml
+   image: hermes-dashboard:latest
+   pull_policy: never
+   ```
+
+   Without `pull_policy: never`, anything that pulls the app's images looks for
+   `hermes-dashboard:latest` on Docker Hub and fails with *pull access denied*.
+
+**To update:** `git -C /mnt/tank/src/hermes-dashboard pull`, rebuild with the
+same command, then redeploy the app. A running container keeps the old image
+until it is recreated.
 
 ### Option B — push to a registry
 
+From the repository root:
+
 ```sh
-docker build -t ghcr.io/<you>/hermes-dashboard:latest .
+docker build --platform linux/amd64 -t ghcr.io/<you>/hermes-dashboard:latest .
 docker push ghcr.io/<you>/hermes-dashboard:latest
 ```
+
+`--platform linux/amd64` matters when you build on an ARM machine (such as an
+Apple Silicon Mac). Without it the image is arm64 and fails to start on an
+x86 NAS with *exec format error*.
 
 Pushing needs a GitHub personal access token (classic) with `write:packages`.
 
@@ -84,10 +112,12 @@ repository is public, so pulling then needs credentials:
 ## Deploy on TrueNAS
 
 1. Create a dataset for the data, e.g. `/mnt/tank/apps/hermes-dashboard/data`.
-2. Give it to the container user: `chown -R 10001:10001 /mnt/tank/apps/hermes-dashboard/data`
-   (or set a matching `user:` in the compose file).
+2. Give it to the container user: `sudo chown -R 10001:10001 /mnt/tank/apps/hermes-dashboard/data`
+   (or set a matching `user:` in the compose file). If you skip this, the
+   container exits at start with *cannot create /data/media: Permission denied*.
 3. **Apps → Discover Apps → Custom App → Install via YAML**, paste `compose.yaml`,
-   and change the image, the `HFCD_API_KEY` and the volume path.
+   and change the image (plus `pull_policy: never` for Option A), the
+   `HFCD_API_KEY` and the volume path to the dataset from step 1.
 4. Open `http://<nas>:8080/`. `GET /api/healthz` is the health endpoint and is
    already wired as the image's `HEALTHCHECK`.
 
@@ -109,8 +139,9 @@ repository is public, so pulling then needs credentials:
 Nothing needs configuring. A run whose request document carries a real issue
 URL is linked from that URL directly, and the repository name in it becomes the
 run's project — so `poke-defense-godot` and `piwotworki` runs each link to their
-own tracker, and the dashboard grows a project column and project filter chips
-the moment a second project appears.
+own tracker. The project switcher in the top bar scopes the whole dashboard —
+metrics, spend, running cards and the run list — to one project, or shows all
+of them with a project column.
 
 The templates below matter only for runs that state a bare `#116` with no URL.
 Pick whichever fits:

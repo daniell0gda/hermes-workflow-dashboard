@@ -15,9 +15,10 @@ services:
     # on the NAS; a public one needs nothing. See the README.
     image: ghcr.io/CHANGE-ME/hermes-dashboard:latest
 
-    # No registry at all: build the image on the NAS and use the local tag.
-    # pull_policy is required, or Docker goes looking for it upstream.
-    #   docker build -t hermes-dashboard:latest /mnt/tank/src/dashboard
+    # No registry at all: build the image on the NAS from a clone of the
+    # repository and use the local tag (README, Option A). pull_policy is
+    # required, or Docker goes looking for it upstream.
+    #   sudo docker build -t hermes-dashboard:latest /mnt/tank/src/hermes-dashboard
     # image: hermes-dashboard:latest
     # pull_policy: never
 
