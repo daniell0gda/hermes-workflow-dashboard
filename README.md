@@ -52,7 +52,7 @@ Docker. Earlier releases run Apps on Kubernetes and have no `docker` command.
 1. Put the repository on a dataset, from the NAS shell (System → Shell, or SSH):
 
    ```sh
-   git clone https://github.com/daniell0gda/hermes-feature-check-dashboard.git \
+   git clone https://github.com/daniell0gda/hermes-workflow-dashboard.git \
        /mnt/tank/src/hermes-dashboard
    ```
 
