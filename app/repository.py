@@ -65,6 +65,10 @@ ISSUE_REPORTED_SQL = "gh_status IS NOT NULL AND gh_status != ''"
 # a run that never stated a start is placed where the list already orders it.
 RUN_MOMENT_SQL = "COALESCE(started_at, updated_at)"
 
+# Scopes a query to one project, or to all of them when bound to an empty
+# string. Takes the project twice.
+PROJECT_SQL = "(? = '' OR project = ?)"
+
 
 def _rows(cursor: sqlite3.Cursor) -> list[dict[str, Any]]:
     return [dict(row) for row in cursor.fetchall()]
@@ -235,17 +239,17 @@ class Repository:
             ).fetchall()
         ]
 
-    def active_runs(self, limit: int = 10) -> list[dict[str, Any]]:
+    def active_runs(self, limit: int = 10, project: str = "") -> list[dict[str, Any]]:
         """Live runs only, so an abandoned one stops claiming to be running now."""
         return _rows(
             self._connection.execute(
-                f"SELECT * FROM runs WHERE {LIVE_SQL} "
+                f"SELECT * FROM runs WHERE {LIVE_SQL} AND {PROJECT_SQL} "
                 f"ORDER BY {RUN_MOMENT_SQL} DESC LIMIT ?",
-                (formatting.abandoned_cutoff(), limit),
+                (formatting.abandoned_cutoff(), project, project, limit),
             )
         )
 
-    def summary(self) -> dict[str, Any]:
+    def summary(self, project: str = "") -> dict[str, Any]:
         cutoff = formatting.abandoned_cutoff()
         row = self._connection.execute(
             f"""
@@ -264,8 +268,9 @@ class Repository:
                    SUM(input_tokens)                 AS input_tokens,
                    SUM(output_tokens)                AS output_tokens
             FROM runs
+            WHERE {PROJECT_SQL}
             """,
-            (cutoff, cutoff),
+            (cutoff, cutoff, project, project),
         ).fetchone()
 
         def integer(key: str) -> int:
@@ -287,12 +292,12 @@ class Repository:
             "worker_calls": integer("worker_calls"),
             "avg_duration_ms": None if row["avg_duration_ms"] is None else round(row["avg_duration_ms"]),
             "cost_usd": _optional_float(row["cost_usd"]),
-            "spend": self.spend(),
+            "spend": self.spend(project),
             "input_tokens": optional_int("input_tokens"),
             "output_tokens": optional_int("output_tokens"),
         }
 
-    def spend(self) -> dict[str, float | None]:
+    def spend(self, project: str = "") -> dict[str, float | None]:
         """What the runs have cost today, this week and this month.
 
         A period holding no priced run at all sums to NULL and is reported as
@@ -305,8 +310,9 @@ class Repository:
                    SUM(CASE WHEN {RUN_MOMENT_SQL} >= ? THEN cost_usd END) AS week,
                    SUM(CASE WHEN {RUN_MOMENT_SQL} >= ? THEN cost_usd END) AS month
             FROM runs
+            WHERE {PROJECT_SQL}
             """,
-            (starts["today"], starts["week"], starts["month"]),
+            (starts["today"], starts["week"], starts["month"], project, project),
         ).fetchone()
 
         return {period: _optional_float(row[period]) for period in ("today", "week", "month")}

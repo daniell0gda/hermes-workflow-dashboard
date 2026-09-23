@@ -85,7 +85,7 @@ def runs_list(
     )
 
     active = []
-    for run in repository.active_runs(ACTIVE_CARD_LIMIT):
+    for run in repository.active_runs(ACTIVE_CARD_LIMIT, project=project):
         stages = workflow.stages(run, repository.events_for(run["run_id"]))
         active.append({"run": run, "stages": stages})
 
@@ -95,10 +95,10 @@ def runs_list(
         {
             "filters": {"status": status, "q": q, "project": project, "done": done},
             "result": result,
-            "summary": repository.summary(),
+            "summary": repository.summary(project),
             "active": active,
-            # Only worth showing once runs come from more than one project.
             "projects": repository.projects(),
+            "current_project": project,
         },
     )
 
@@ -155,6 +155,8 @@ def run_detail(
             "resolve_media": _media_resolver(artifacts),
             "invocations": invocations,
             "sections": sections,
+            "projects": repository.projects(),
+            "current_project": run["project"] or "",
         },
     )
 

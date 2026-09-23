@@ -6,13 +6,24 @@
 {% set done_filters = [('', 'Any issue'), ('yes', 'Done'), ('no', 'Not done')] %}
 {# The issue column, its chips and its tile only earn their space once something reports a state. #}
 {% set show_issue_state = summary.issue_reported > 0 %}
+{# A column repeating the chosen project on every row says nothing. #}
+{% set show_project_column = projects | length > 1 and not current_project %}
 
 {% block content %}
 <header class="page-head">
-  <p class="eyebrow">Hermes · Feature check</p>
-  <h1>Run dashboard</h1>
+  <p class="eyebrow">Hermes · Team Workflow · Run dashboard</p>
+  <div class="scope-title">
+    <h1>{{ current_project or ('All projects' if projects else 'Run dashboard') }}</h1>
+    {% if current_project %}
+    <a class="scope-clear" href="{{ list_url() }}">View all projects</a>
+    {% endif %}
+  </div>
   <p class="lede">
-    Every feature-check run the worker has published, newest first. Live runs update in place.
+    {% if current_project %}
+    Every Team Workflow run published for this project, newest first. Live runs update in place.
+    {% else %}
+    Every Team Workflow run the worker has published, newest first. Live runs update in place.
+    {% endif %}
   </p>
 </header>
 
@@ -111,24 +122,13 @@
   </div>
   {% endif %}
 
-  {% if projects | length > 1 %}
-  <div class="chips chips-project" aria-label="Filter by project">
-    <a class="chip {{ 'is-current' if not filters.project }}"
-       href="{{ list_url(status=filters.status, q=filters.q, done=filters.done) }}">All projects</a>
-    {% for name in projects %}
-    <a class="chip {{ 'is-current' if filters.project == name }}"
-       {% if filters.project == name %}aria-current="page"{% endif %}
-       href="{{ list_url(status=filters.status, q=filters.q, project=name, done=filters.done) }}">{{ name }}</a>
-    {% endfor %}
-  </div>
-  {% endif %}
-
   <div data-live="runs">
     {% if not result.rows %}
     <p class="empty">
       No runs match this view.
-      {% if filters.q or filters.status or filters.project or filters.done %}
-      <a href="{{ url_path('/') }}">Clear filters</a>
+      {# The project is the scope, not a filter: clearing keeps it. #}
+      {% if filters.q or filters.status or filters.done %}
+      <a href="{{ list_url(project=filters.project) }}">Clear filters</a>
       {% endif %}
     </p>
     {% else %}
@@ -137,7 +137,7 @@
         <thead>
           <tr>
             <th scope="col">Run</th>
-            {% if projects | length > 1 %}<th scope="col">Project</th>{% endif %}
+            {% if show_project_column %}<th scope="col">Project</th>{% endif %}
             <th scope="col">Status</th>
             <th scope="col">Verdict</th>
             {% if show_issue_state %}<th scope="col">Issue</th>{% endif %}
@@ -158,7 +158,7 @@
               <span class="tag" title="Extra passes through the coding stage">{{ run.revisions }} rev</span>
               {% endif %}
             </td>
-            {% if projects | length > 1 %}<td class="dim">{{ run.project or dash }}</td>{% endif %}
+            {% if show_project_column %}<td class="dim">{{ run.project or dash }}</td>{% endif %}
             <td>{{ ui.status_badge(run) }}</td>
             <td>{{ ui.verdict_badge(run.classification) }}</td>
             {% if show_issue_state %}<td>{{ ui.issue_state_badge(run, compact=true) }}</td>{% endif %}

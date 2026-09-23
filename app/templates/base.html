@@ -5,24 +5,40 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
   <meta name="color-scheme" content="light dark">
-  <title>{% block title %}{{ site_name }}{% endblock %} · Feature Check</title>
+  <title>{% block title %}{{ site_name }}{% endblock %}{% if current_project %} · {{ current_project }}{% endif %} · Team Workflow</title>
   <link rel="stylesheet" href="{{ url_path('/static/dashboard.css') }}">
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
 
 <header class="topbar">
-  <a class="brand" href="{{ url_path('/') }}">
-    <span class="brand-mark" aria-hidden="true">FC</span>
-    <span class="brand-text">
-      <strong>Feature Check</strong>
-      <span>{{ site_name }}</span>
-    </span>
-  </a>
+  <div class="topbar-context">
+    <a class="brand" href="{{ url_path('/') }}">
+      <span class="brand-mark" aria-hidden="true">TW</span>
+      <span class="brand-text">
+        <strong>Team Workflow</strong>
+        <span>{{ site_name }}</span>
+      </span>
+    </a>
+    {% if projects %}
+    {# Works without script as a plain form; with it, choosing navigates at once. #}
+    <form class="project-switcher" method="get" action="{{ url_path('/') }}" data-project-switcher>
+      <label for="project-switcher">Project</label>
+      <select id="project-switcher" name="project">
+        <option value="" data-href="{{ list_url() }}">All projects</option>
+        {% for name in projects %}
+        <option value="{{ name }}" data-href="{{ list_url(project=name) }}"
+                {% if name == current_project %}selected{% endif %}>{{ name }}</option>
+        {% endfor %}
+      </select>
+      <noscript><button type="submit">Open</button></noscript>
+    </form>
+    {% endif %}
+  </div>
   <nav class="topbar-nav">
-    <a href="{{ url_path('/') }}">All runs</a>
-    <a href="{{ url_path('/?status=running') }}">Running</a>
-    <a href="{{ url_path('/?status=failed') }}">Failed</a>
+    <a href="{{ list_url(project=current_project) }}">All runs</a>
+    <a href="{{ list_url(status='running', project=current_project) }}">Running</a>
+    <a href="{{ list_url(status='failed', project=current_project) }}">Failed</a>
   </nav>
 </header>
 

@@ -31,6 +31,19 @@
         }
     });
 
+    document.addEventListener('change', function (event) {
+        if (event.target.closest('[data-project-switcher]')) {
+            switchProject(event.target);
+        }
+    });
+
+    function switchProject(select) {
+        var href = select.options[select.selectedIndex].getAttribute('data-href');
+        if (href) {
+            window.location.assign(href);
+        }
+    }
+
     function copyRunId(button) {
         var value = button.getAttribute('data-copy') || '';
         if (!navigator.clipboard) {

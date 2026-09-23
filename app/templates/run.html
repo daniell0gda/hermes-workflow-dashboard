@@ -4,7 +4,7 @@
 
 {% block content %}
 <nav class="breadcrumb" aria-label="Breadcrumb">
-  <a href="{{ url_path('/') }}">All runs</a>
+  <a href="{{ list_url(project=run.project) }}">{{ run.project or 'All runs' }}</a>
   <span aria-hidden="true">/</span>
   <span>{{ run.feature or run.run_id }}</span>
 </nav>
@@ -13,7 +13,7 @@
   <div class="run-title">
     <div>
       <p class="eyebrow">
-        Feature check run{% if run.project %} · <a href="{{ list_url(project=run.project) }}">{{ run.project }}</a>{% endif %}
+        Team Workflow run{% if run.project %} · <a href="{{ list_url(project=run.project) }}">{{ run.project }}</a>{% endif %}
       </p>
       <h1>{{ run.feature or run.run_id }}</h1>
       <p class="run-id-row">

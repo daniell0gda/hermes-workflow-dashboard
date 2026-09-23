@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import dataclasses
+import re
 
 import pytest
 from fastapi.testclient import TestClient
@@ -34,6 +35,10 @@ def publish(repository: Repository, payload: dict, linking: IssueLinking | None 
         ingest.publish(repository, run_id, payload, linking)
 
     return repository.find_run(run_id)
+
+
+def is_selected(page: str, project: str) -> bool:
+    return re.search(rf'<option value="{re.escape(project)}"[^>]*\sselected>', page) is not None
 
 
 class TestProjectFromIssueUrl:
@@ -155,21 +160,77 @@ class TestListingAndFiltering:
 
         assert body["total"] == 1
 
-    def test_project_chips_appear_once_there_are_two(self, client: TestClient, auth: dict) -> None:
+    def test_project_switcher_lists_every_project(self, client: TestClient, auth: dict) -> None:
         self.seed(client, auth)
 
         page = client.get("/").text
 
-        assert "chips-project" in page
-        assert "All projects" in page
-        assert ">piwotworki<" in page
+        assert "data-project-switcher" in page
+        assert ">All projects</option>" in page
+        assert ">piwotworki</option>" in page
+        assert 'data-href="/?project=piwotworki"' in page
 
-    def test_no_project_chips_for_a_single_project(self, client: TestClient, auth: dict) -> None:
+    def test_project_switcher_shows_even_a_single_project(self, client: TestClient, auth: dict) -> None:
         client.post("/api/runs", json=run_payload("godot-a", f"{GODOT_URL}\n"), headers=auth)
 
         page = client.get("/").text
 
-        assert "chips-project" not in page
+        assert ">poke-defense-godot</option>" in page
+        assert "<th scope=\"col\">Project</th>" not in page
+
+    def test_no_project_switcher_without_projects(self, client: TestClient, auth: dict) -> None:
+        client.post("/api/runs", json=run_payload("r1", "# Request: no link\n"), headers=auth)
+
+        assert "data-project-switcher" not in client.get("/").text
+
+    def test_chosen_project_is_selected_and_named(self, client: TestClient, auth: dict) -> None:
+        self.seed(client, auth)
+
+        page = client.get("/", params={"project": "piwotworki"}).text
+
+        assert is_selected(page, "piwotworki")
+        assert not is_selected(page, "poke-defense-godot")
+        assert "<h1>piwotworki</h1>" in page
+        assert "<title>Run dashboard · piwotworki · Team Workflow</title>" in page
+        assert "View all projects" in page
+
+    def test_all_projects_heading_without_a_choice(self, client: TestClient, auth: dict) -> None:
+        self.seed(client, auth)
+
+        page = client.get("/").text
+
+        assert "<h1>All projects</h1>" in page
+        assert "View all projects" not in page
+
+    def test_summary_follows_the_chosen_project(self, client: TestClient, auth: dict) -> None:
+        self.seed(client, auth)
+
+        page = client.get("/", params={"project": "piwotworki"}).text
+
+        assert re.search(r"<dt>Runs</dt>\s*<dd>1</dd>", page)
+
+    def test_active_runs_follow_the_chosen_project(self, client: TestClient, auth: dict) -> None:
+        for run_id, url in (("godot-live", GODOT_URL), ("piwot-live", PIWOT_URL)):
+            payload = {**run_payload(run_id, f"{url}\n"), "status": "running"}
+            client.post("/api/runs", json=payload, headers=auth)
+
+        page = client.get("/", params={"project": "piwotworki"}).text
+
+        assert "piwot-live" in page
+        assert "godot-live" not in page
+
+    def test_nav_keeps_the_chosen_project(self, client: TestClient, auth: dict) -> None:
+        self.seed(client, auth)
+
+        page = client.get("/", params={"project": "piwotworki"}).text
+
+        assert 'href="/?status=running&amp;project=piwotworki"' in page
+
+    def test_project_column_hides_once_a_project_is_chosen(self, client: TestClient, auth: dict) -> None:
+        self.seed(client, auth)
+
+        page = client.get("/", params={"project": "piwotworki"}).text
+
         assert "<th scope=\"col\">Project</th>" not in page
 
     def test_project_column_appears_with_two_projects(self, client: TestClient, auth: dict) -> None:
@@ -191,6 +252,14 @@ class TestListingAndFiltering:
         page = client.get("/run/godot-a").text
 
         assert "project=poke-defense-godot" in page
+
+    def test_run_page_switcher_selects_its_project(self, client: TestClient, auth: dict) -> None:
+        self.seed(client, auth)
+
+        page = client.get("/run/godot-a").text
+
+        assert is_selected(page, "poke-defense-godot")
+        assert "· poke-defense-godot · Team Workflow</title>" in page
 
 
 class TestEndToEnd:

@@ -33,6 +33,9 @@ def build_templates(settings: Settings) -> Jinja2Templates:
             "stage_progress": workflow.progress,
             "render_markdown": renderer.render,
             "dash": formatting.DASH,
+            # Defaults for pages that are not about any one project.
+            "projects": (),
+            "current_project": "",
         }
     )
     templates.env.trim_blocks = True
@@ -79,7 +82,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     startup_connection.close()
 
     app = FastAPI(
-        title="Hermes Feature Check Dashboard",
+        title="Hermes Team Workflow Dashboard",
         version="1.0.0",
         root_path=settings.root_path,
         docs_url="/api/docs",

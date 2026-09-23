@@ -127,6 +127,72 @@ code, pre, .run-id, .mono { font-family: var(--mono); }
 .brand-text strong { font-size: 14px; }
 .brand-text span { color: var(--text-3); font-size: 11.5px; }
 
+.topbar-context { display: flex; align-items: center; gap: 16px; min-width: 0; }
+.brand:has(+ .project-switcher) { padding-right: 16px; border-right: 1px solid var(--border); }
+
+.project-switcher {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 36px;
+    min-width: 0;
+    padding-left: 11px;
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    background: var(--panel-alt);
+}
+.project-switcher:hover { border-color: var(--text-3); }
+.project-switcher:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.project-switcher label {
+    color: var(--text-3);
+    font-size: 10.5px;
+    font-weight: 750;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+.project-switcher select {
+    appearance: none;
+    min-width: 160px;
+    max-width: 280px;
+    height: 100%;
+    padding: 0 32px 0 0;
+    border: 0;
+    background: transparent;
+    color: var(--text);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 650;
+    text-overflow: ellipsis;
+    cursor: pointer;
+}
+.project-switcher select:focus { outline: none; }
+/* The chevron: a native select arrow cannot be styled to match. */
+.project-switcher::after {
+    content: "";
+    position: absolute;
+    right: 13px;
+    top: 50%;
+    width: 7px;
+    height: 7px;
+    border-right: 1.5px solid var(--text-2);
+    border-bottom: 1.5px solid var(--text-2);
+    transform: translateY(-70%) rotate(45deg);
+    pointer-events: none;
+}
+.project-switcher button {
+    margin-right: 4px;
+    padding: 4px 10px;
+    border: 0;
+    border-radius: 6px;
+    background: var(--accent);
+    color: #fff;
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+}
+
 .topbar-nav { display: flex; gap: 4px; }
 .topbar-nav a {
     padding: 6px 11px;
@@ -175,6 +241,9 @@ code, pre, .run-id, .mono { font-family: var(--mono); }
 .page-head { margin-bottom: 24px; }
 .page-head h1 { font-size: clamp(26px, 3.4vw, 34px); line-height: 1.15; }
 .lede { margin: 10px 0 0; color: var(--text-2); max-width: 68ch; }
+
+.scope-title { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+.scope-clear { font-size: 13.5px; font-weight: 600; white-space: nowrap; }
 
 .run-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
 .run-badges { display: flex; gap: 8px; align-items: center; padding-top: 6px; }
@@ -397,8 +466,7 @@ code, pre, .run-id, .mono { font-family: var(--mono); }
 /* ---------- filters ---------- */
 
 .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
-.chips-project, .chips-done { margin-top: -6px; }
-.chips-project .chip { font-family: var(--mono); font-size: 12px; }
+.chips-done { margin-top: -6px; }
 .chip {
     padding: 5px 12px;
     border-radius: 999px;
@@ -779,6 +847,11 @@ th.num { text-align: right; }
 
 @media (max-width: 560px) {
     .brand-text span { display: none; }
+    .topbar-context { flex: 1 1 100%; }
+    /* Room for the project name matters more than the product name. */
+    .brand:has(+ .project-switcher) .brand-text { display: none; }
+    .project-switcher { flex: 1; }
+    .project-switcher select { flex: 1; min-width: 0; max-width: none; }
     .run-title { flex-direction: column; gap: 12px; }
     .run-badges { padding-top: 0; }
     .search { width: 100%; }
