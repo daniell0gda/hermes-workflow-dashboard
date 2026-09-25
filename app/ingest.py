@@ -58,9 +58,11 @@ _TEAM_LEADER_VERDICT = re.compile(
 _CHECK_VERDICT = re.compile(r"^\s*classification:\s*([A-Za-z_-]+)", re.MULTILINE | re.IGNORECASE)
 
 # Any forge's issue URL: GitHub and Gitea use <repo>/issues/<n>, GitLab
-# <repo>/-/issues/<n>. Group 1 is the repository, group 2 the issue number.
+# <repo>/-/issues/<n>, or <repo>/-/work_items/<n> since GitLab 18 links issues
+# as work items. Group 1 is the repository, group 2 the issue number.
 _ISSUE_URL = re.compile(
-    r"https?://[^\s)\]<>\"'`]+?/([A-Za-z0-9._-]+)/(?:-/)?issues/(\d+)\b", re.IGNORECASE
+    r"https?://[^\s)\]<>\"'`]+?/([A-Za-z0-9._-]+)/(?:-/)?(?:issues|work_items)/(\d+)\b",
+    re.IGNORECASE,
 )
 
 # The request document opens with e.g. "# Request: #116 game-ready-blocks (r6)"

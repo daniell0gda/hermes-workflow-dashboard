@@ -174,6 +174,7 @@ class TestUrlShapes:
             ("[#7](https://github.com/o/r/issues/7)", 7),
             ("see <https://gitea.example.com/o/r/issues/7>", 7),
             ("https://gitlab.com/o/r/-/issues/7", 7),
+            ("https://gitlab.com/o/r/-/work_items/7", 7),
             ("http://localhost:3000/o/r/issues/7 done", 7),
             ("(https://github.com/o/r/issues/7)", 7),
         ],
@@ -182,6 +183,13 @@ class TestUrlShapes:
         run = publish(repository, with_documents({"slug": "request", "kind": "primary", "body": body}))
 
         assert run["issue_number"] == expected
+
+    def test_gitlab_work_item_names_its_project(self, repository: Repository) -> None:
+        """GitLab 18 links issues as work items; the repository still comes first."""
+        url = "https://gitlab.pdtec.lan/ferens/simple-ng-proj/-/work_items/13"
+        run = publish(repository, with_documents({"slug": "request", "kind": "primary", "body": f"issue: {url}\n"}))
+
+        assert (run["issue_url"], run["issue_number"], run["project"]) == (url, 13, "simple-ng-proj")
 
     def test_unsafe_scheme_in_payload_is_dropped(self, repository: Repository) -> None:
         payload = with_documents({"slug": "request", "kind": "primary", "body": "nothing\n"})

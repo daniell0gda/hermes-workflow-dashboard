@@ -303,8 +303,8 @@ The worker does not report these; they are computed once at publish time.
   2. a real issue URL inside the run's own documents — the request document
      carries one on **147 of the 182** published runs. This is authoritative and
      needs **no configuration for any number of projects**, because the URL names
-     its own repository. GitHub, Gitea and GitLab (`/-/issues/`) shapes are all
-     recognised, including inside markdown links and angle brackets;
+     its own repository. GitHub, Gitea and GitLab (`/-/issues/`, and `/-/work_items/`
+     since GitLab 18) shapes are all recognised, including inside markdown links and angle brackets;
   3. the number in the request heading (`# Request: #116 …`), turned into a link
      from a configured template. Without one the number is still shown,
      unlinked, rather than pointing somewhere invented.
