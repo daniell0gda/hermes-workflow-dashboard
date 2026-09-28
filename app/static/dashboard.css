@@ -833,6 +833,65 @@ th.num { text-align: right; }
     cursor: pointer;
 }
 
+/* ---------- full-page reader ---------- */
+
+.reader-open {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    flex: 0 0 auto;
+    padding: 3px 9px;
+    border: 1px solid var(--border-strong);
+    border-radius: 7px;
+    background: var(--panel);
+    color: var(--text-2);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 550;
+    line-height: 1.4;
+    white-space: nowrap;
+    cursor: pointer;
+}
+.reader-open:hover { border-color: var(--accent); color: var(--accent); }
+
+.readable-row { display: flex; align-items: flex-start; gap: 10px; }
+.readable-row > details { flex: 1; min-width: 0; }
+.reader-bar { display: flex; justify-content: flex-end; padding: 10px 0 2px; }
+.doc > summary .reader-open { float: right; margin: -2px 0 0 12px; }
+
+.reader {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    flex-direction: column;
+    background: var(--bg);
+    color: var(--text);
+}
+/* A closed <dialog> must stay hidden: author display rules beat the UA sheet. */
+.reader[open] { display: flex; }
+html:has(.reader[open]) { overflow: hidden; }
+
+.reader-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 24px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+}
+.reader-title { min-width: 0; font-size: 16.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.reader-close { flex: 0 0 auto; padding: 6px 14px; }
+.reader-body { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 32px 24px 64px; }
+.reader-body .markdown { max-width: 880px; margin: 0 auto; font-size: 15.5px; line-height: 1.65; }
+
 /* ---------- responsive ---------- */
 
 @media (max-width: 860px) {
@@ -846,6 +905,8 @@ th.num { text-align: right; }
     .metric { padding: 11px 12px; }
     .metric dd { font-size: 15px; }
     th, td { padding: 9px 8px; font-size: 13.5px; }
+    .reader-head { padding: 10px 14px; }
+    .reader-body { padding: 20px 14px 44px; }
 }
 
 @media (max-width: 560px) {

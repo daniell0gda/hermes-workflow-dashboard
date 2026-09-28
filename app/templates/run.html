@@ -142,10 +142,13 @@
           <td>{{ ui.time_cell(event.occurred_at) }}</td>
           <td class="cell-summary">
             {% if event.summary and event.summary.strip() %}
-            <details>
-              <summary>{{ event.summary | one_line }}</summary>
-              <div class="markdown">{{ render_markdown(event.summary, resolve_media) | safe }}</div>
-            </details>
+            <div class="readable-row" data-readable>
+              <details>
+                <summary>{{ event.summary | one_line }}</summary>
+                <div class="markdown">{{ render_markdown(event.summary, resolve_media) | safe }}</div>
+              </details>
+              {{ ui.reader_button((event.node | label) ~ ' · call #' ~ event.seq) }}
+            </div>
             {% else %}
             <span class="dim">{{ dash }}</span>
             {% endif %}
@@ -262,7 +265,8 @@
       {% endfor %}
     </div>
     {% for document in documents.primary %}
-    <div class="tabpanel" role="tabpanel" id="doc-{{ loop.index }}" {{ '' if loop.first else 'hidden' }}>
+    <div class="tabpanel" role="tabpanel" id="doc-{{ loop.index }}" data-readable {{ '' if loop.first else 'hidden' }}>
+      <div class="reader-bar">{{ ui.reader_button(document.title) }}</div>
       <div class="markdown">{{ render_markdown(document.body, resolve_media) | safe }}</div>
     </div>
     {% endfor %}
@@ -275,8 +279,8 @@
   <div class="doc-group">
     <h3>{{ group_title }} <span class="pill">{{ group | length }}</span></h3>
     {% for document in group %}
-    <details class="doc">
-      <summary>{{ document.title }}</summary>
+    <details class="doc" data-readable>
+      <summary>{{ document.title }} {{ ui.reader_button(document.title) }}</summary>
       <div class="markdown">{{ render_markdown(document.body, resolve_media) | safe }}</div>
     </details>
     {% endfor %}

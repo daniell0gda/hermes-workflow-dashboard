@@ -25,6 +25,14 @@
             return;
         }
 
+        var readerButton = event.target.closest('[data-reader]');
+        if (readerButton && typeof HTMLDialogElement === 'function') {
+            // The button can sit in a <summary>: opening the reader must not also toggle it.
+            event.preventDefault();
+            openReader(readerButton);
+            return;
+        }
+
         var tab = event.target.closest('.tab');
         if (tab) {
             selectTab(tab);
@@ -107,6 +115,42 @@
         dialog.querySelector('img').alt = caption;
         dialog.querySelector('figcaption').textContent = caption;
         dialog.showModal();
+    }
+
+    function reader() {
+        var dialog = document.getElementById('hfcd-reader');
+        if (dialog) {
+            return dialog;
+        }
+
+        dialog = document.createElement('dialog');
+        dialog.id = 'hfcd-reader';
+        dialog.className = 'reader';
+        dialog.setAttribute('aria-labelledby', 'hfcd-reader-title');
+        dialog.innerHTML =
+            '<header class="reader-head">' +
+            '<h2 class="reader-title" id="hfcd-reader-title"></h2>' +
+            '<button type="button" class="button reader-close">Close</button>' +
+            '</header>' +
+            '<div class="reader-body"></div>';
+        dialog.querySelector('.reader-close').addEventListener('click', function () {
+            dialog.close();
+        });
+        document.body.appendChild(dialog);
+
+        return dialog;
+    }
+
+    /** A copy, so a live refresh swapping the page underneath leaves the open text alone. */
+    function openReader(button) {
+        var content = button.closest('[data-readable]').querySelector('.markdown');
+        var dialog = reader();
+        var body = dialog.querySelector('.reader-body');
+
+        dialog.querySelector('.reader-title').textContent = button.getAttribute('data-reader');
+        body.replaceChildren(content.cloneNode(true));
+        dialog.showModal();
+        body.scrollTop = 0;
     }
 
     /* ---------------------------------------------------------------- live */

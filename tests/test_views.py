@@ -262,6 +262,43 @@ class TestRunDetail:
 
         assert reports_key(client.get("/run/fresh-run").text) != coding
 
+    def test_every_report_opens_full_page_under_its_title(
+        self, client: TestClient, auth: dict
+    ) -> None:
+        publish(client, auth)
+
+        body = client.get(f"/run/{RUN_ID}").text
+
+        # Two primary tabs and one work cluster.
+        for title in ("Team-leader report", "Plan", "First"):
+            assert f'data-reader="{title}"' in body
+
+    def test_a_stage_summary_opens_full_page_under_its_stage(
+        self, client: TestClient, auth: dict
+    ) -> None:
+        publish(client, auth)
+
+        # Named as the timeline row names it.
+        assert 'data-reader="Code · call #2"' in client.get(f"/run/{RUN_ID}").text
+
+    def test_everything_rendered_as_markdown_can_open_full_page(
+        self, client: TestClient, auth: dict
+    ) -> None:
+        publish(client, auth)
+
+        body = client.get(f"/run/{RUN_ID}").text
+
+        assert body.count("data-reader=") == body.count('<div class="markdown">')
+
+    def test_a_call_without_a_summary_offers_nothing_to_open(
+        self, client: TestClient, auth: dict
+    ) -> None:
+        payload = sample_payload()
+        payload["events"][0]["summary"] = ""
+        publish(client, auth, payload)
+
+        assert "call #1" not in client.get(f"/run/{RUN_ID}").text
+
     def test_unknown_run_renders_a_404_page(self, client: TestClient) -> None:
         response = client.get("/run/never-published")
 
