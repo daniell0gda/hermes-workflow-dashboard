@@ -168,6 +168,9 @@ code, pre, .run-id, .mono { font-family: var(--mono); }
     cursor: pointer;
 }
 .project-switcher select:focus { outline: none; }
+/* The open list is painted on the options' own colours, and a transparent select
+   leaves them on the system's light default: light text on white in dark mode. */
+.project-switcher option { background: var(--panel); color: var(--text); }
 /* The chevron: a native select arrow cannot be styled to match. */
 .project-switcher::after {
     content: "";
