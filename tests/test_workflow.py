@@ -218,6 +218,34 @@ class TestActiveSince:
         assert not [stage for stage in workflow.stages(run, events) if stage["since"]]
 
 
+class TestSignature:
+    RUN = {"status": "running", "started_at": "2026-08-25 10:00:00", "graph": GRAPH}
+    PLANNED = {"node": "plan", "status": "completed", "occurred_at": "2026-08-25 10:05:00"}
+
+    def test_moving_on_to_the_next_stage_changes_it(self) -> None:
+        planning = workflow.stages({**self.RUN, "active_node": "plan"}, [])
+        coding = workflow.stages({**self.RUN, "active_node": "code"}, [self.PLANNED])
+
+        assert workflow.signature(planning) != workflow.signature(coding)
+
+    def test_another_pass_through_the_same_stage_changes_it(self) -> None:
+        coded = {"node": "code", "status": "completed", "occurred_at": "2026-08-25 10:10:00"}
+        first = workflow.stages({**self.RUN, "active_node": "code"}, [self.PLANNED])
+        second = workflow.stages({**self.RUN, "active_node": "code"}, [self.PLANNED, coded])
+
+        assert workflow.signature(first) != workflow.signature(second)
+
+    def test_a_heartbeat_within_the_same_stage_leaves_it_alone(self) -> None:
+        earlier = workflow.stages(
+            {**self.RUN, "active_node": "code", "heartbeat_at": "2026-08-25 10:06:00"}, [self.PLANNED]
+        )
+        later = workflow.stages(
+            {**self.RUN, "active_node": "code", "heartbeat_at": "2026-08-25 10:07:00"}, [self.PLANNED]
+        )
+
+        assert workflow.signature(earlier) == workflow.signature(later)
+
+
 class TestProgress:
     def test_counts_settled_stages(self) -> None:
         stages = [

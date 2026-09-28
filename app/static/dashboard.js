@@ -137,14 +137,45 @@
                     }
 
                     var replacement = fresh.querySelector('[data-live="' + region.dataset.live + '"]');
-                    if (replacement) {
-                        region.innerHTML = replacement.innerHTML;
+                    if (replacement && !keyHolds(region, replacement)) {
+                        swapRegion(region, replacement);
                     }
                 });
             })
             .catch(function () {
                 /* offline or restarting: the next tick tries again */
             });
+    }
+
+    /**
+     * A region carrying [data-live-key] is swapped only once the server moves
+     * its key, so a reader's tab is not reset on every poll.
+     */
+    function keyHolds(region, replacement) {
+        return region.hasAttribute('data-live-key') &&
+            region.getAttribute('data-live-key') === replacement.getAttribute('data-live-key');
+    }
+
+    function swapRegion(region, replacement) {
+        var currentTab = region.querySelector('.tab.is-current');
+        var tabTitle = currentTab ? currentTab.textContent : null;
+
+        region.innerHTML = replacement.innerHTML;
+        if (replacement.hasAttribute('data-live-key')) {
+            region.setAttribute('data-live-key', replacement.getAttribute('data-live-key'));
+        }
+        if (tabTitle !== null) {
+            reselectTab(region, tabTitle);
+        }
+    }
+
+    /** Found again by title: tab ids are positional and shift as reports arrive. */
+    function reselectTab(region, title) {
+        Array.prototype.forEach.call(region.querySelectorAll('.tab'), function (tab) {
+            if (tab.textContent === title) {
+                selectTab(tab);
+            }
+        });
     }
 
     function tick() {

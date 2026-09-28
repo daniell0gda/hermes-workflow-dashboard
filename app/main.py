@@ -31,6 +31,7 @@ def build_templates(settings: Settings) -> Jinja2Templates:
             "display_status": formatting.display_status,
             "run_duration_ms": formatting.run_duration_ms,
             "stage_progress": workflow.progress,
+            "stage_signature": workflow.signature,
             "render_markdown": renderer.render,
             "dash": formatting.DASH,
             # Defaults for pages that are not about any one project.

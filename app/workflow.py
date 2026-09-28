@@ -110,6 +110,14 @@ def progress(stage_list: Sequence[Mapping[str, Any]]) -> int:
     return round(settled / len(stage_list) * 100)
 
 
+def signature(stage_list: Sequence[Mapping[str, Any]]) -> str:
+    """Changes exactly when a stage moves: a pass begins, or one settles.
+
+    Clocks and heartbeats are left out, so it holds still while a stage runs.
+    """
+    return " ".join(f"{stage['key']}:{stage['state']}:{stage['passes']}" for stage in stage_list)
+
+
 def _group(events: Sequence[Mapping[str, Any]]) -> dict[str, list[Mapping[str, Any]]]:
     grouped: dict[str, list[Mapping[str, Any]]] = {}
     for event in events:

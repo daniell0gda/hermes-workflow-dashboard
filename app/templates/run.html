@@ -218,6 +218,8 @@
 </section>
 {% endif %}
 
+{# Always present, so the first report can arrive live; refreshed only when a stage moves. #}
+<div data-live="reports" data-live-key="{{ stage_signature(stages) }}">
 {% if documents.primary or documents.cluster or documents.coder %}
 <section id="reports" class="panel">
   <div class="panel-head"><h2>Reports</h2></div>
@@ -255,6 +257,7 @@
   {% endfor %}
 </section>
 {% endif %}
+</div>
 
 <p class="hint hint-end">
   Raw data:

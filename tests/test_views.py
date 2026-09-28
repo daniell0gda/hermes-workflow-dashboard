@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -27,6 +29,13 @@ def upload(client: TestClient, auth: dict, path: str, data: bytes) -> None:
         headers={**auth, "Content-Type": "application/octet-stream"},
     )
     assert response.status_code == 200
+
+
+def reports_key(body: str) -> str:
+    match = re.search(r'data-live="reports" data-live-key="([^"]*)"', body)
+    assert match, "the reports region carries no stage key"
+
+    return match.group(1)
 
 
 class TestRunsList:
@@ -228,6 +237,30 @@ class TestRunDetail:
         publish(client, auth)
 
         assert "data-elapsed" not in client.get(f"/run/{RUN_ID}").text
+
+    def test_reports_region_is_ready_before_the_first_report(
+        self, client: TestClient, auth: dict
+    ) -> None:
+        payload = live_payload(run_id="fresh-run")
+        payload["documents"] = []
+        publish(client, auth, payload)
+
+        body = client.get("/run/fresh-run").text
+
+        assert 'data-live="reports"' in body
+        assert 'id="reports"' not in body
+
+    def test_reports_region_is_rekeyed_when_the_stage_moves(
+        self, client: TestClient, auth: dict
+    ) -> None:
+        payload = live_payload(run_id="fresh-run")
+        publish(client, auth, payload)
+        coding = reports_key(client.get("/run/fresh-run").text)
+
+        payload["status"].update({"active_node": "check", "phase": "check"})
+        publish(client, auth, payload)
+
+        assert reports_key(client.get("/run/fresh-run").text) != coding
 
     def test_unknown_run_renders_a_404_page(self, client: TestClient) -> None:
         response = client.get("/run/never-published")
