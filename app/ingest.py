@@ -47,7 +47,19 @@ PRIMARY_DOCUMENTS: dict[str, str] = {
 COST_KEYS = ("cost_usd", "total_cost_usd", "cost")
 INPUT_KEYS = ("input_tokens", "total_input_tokens", "prompt_tokens")
 OUTPUT_KEYS = ("output_tokens", "total_output_tokens", "completion_tokens")
+# Prompt-cache usage under Hermes' own names; "write" is cache creation.
+CACHE_READ_KEYS = ("cache_read_tokens",)
+CACHE_WRITE_KEYS = ("cache_write_tokens",)
 METRIC_SCOPES = ("totals", "usage", "tokens")
+
+# Run column -> the names a stated run total may go by. A worker call reports
+# each figure under the column's own name.
+TOKEN_TOTALS = {
+    "input_tokens": INPUT_KEYS,
+    "output_tokens": OUTPUT_KEYS,
+    "cache_read_tokens": CACHE_READ_KEYS,
+    "cache_write_tokens": CACHE_WRITE_KEYS,
+}
 
 # The team-leader report states the verdict; check.md is the fallback for runs
 # that never reached the gate. Observed values: pass, fixable, blocked,
@@ -276,6 +288,8 @@ def _run_fields(
         "cost_usd": usage["cost_usd"],
         "input_tokens": usage["input_tokens"],
         "output_tokens": usage["output_tokens"],
+        "cache_read_tokens": usage["cache_read_tokens"],
+        "cache_write_tokens": usage["cache_write_tokens"],
         "error": _text(status.get("error"), 20_000),
         "graph": json.dumps(graph) if isinstance(graph, dict) and graph else None,
         "metrics": json.dumps(metrics) if metrics else None,
@@ -409,15 +423,11 @@ def _usage(metrics: Mapping[str, Any]) -> dict[str, float | None]:
     """Token and cost totals.
 
     The worker reports usage as a per-invocation list rather than as totals, so
-    the list is summed. A cost carrying ``cost_status: unknown`` is a
-    placeholder zero - the model's pricing was never resolved - and is reported
-    as "no data" instead of a misleading $0.00.
+    the list is summed. The cost already prices cache reads and writes, so the
+    cache figures stand beside it and are never added to it.
     """
-    usage = {
-        "cost_usd": _first_number(metrics, COST_KEYS),
-        "input_tokens": _first_number(metrics, INPUT_KEYS),
-        "output_tokens": _first_number(metrics, OUTPUT_KEYS),
-    }
+    usage = {"cost_usd": _first_number(metrics, COST_KEYS)}
+    usage.update({column: _first_number(metrics, keys) for column, keys in TOKEN_TOTALS.items()})
 
     invocations = metrics.get("invocations")
     if not isinstance(invocations, list) or not invocations:
@@ -428,33 +438,40 @@ def _usage(metrics: Mapping[str, Any]) -> dict[str, float | None]:
     return {key: summed[key] if value is None else value for key, value in usage.items()}
 
 
+def priced_cost(invocation: Mapping[str, Any]) -> float | None:
+    """What one worker call cost.
+
+    A cost carrying ``cost_status: unknown`` is a placeholder zero - the model's
+    pricing was never resolved - and is reported as "no data" instead of a
+    misleading $0.00.
+    """
+    if invocation.get("cost_status", "unknown") == "unknown":
+        return None
+
+    return _plus(None, invocation.get("cost_usd"))
+
+
 def _sum_invocations(invocations: Sequence[Any]) -> dict[str, float | None]:
-    cost = 0.0
-    tokens = {"input_tokens": 0.0, "output_tokens": 0.0}
-    cost_known = False
-    tokens_known = False
+    """Each figure sums the calls that report it, and stays unknown when none do."""
+    totals: dict[str, float | None] = dict.fromkeys(["cost_usd", *TOKEN_TOTALS])
 
     for invocation in invocations:
         if not isinstance(invocation, dict):
             continue
 
-        for key in tokens:
-            value = invocation.get(key)
-            if isinstance(value, (int, float)) and not isinstance(value, bool):
-                tokens[key] += float(value)
-                tokens_known = True
+        totals["cost_usd"] = _plus(totals["cost_usd"], priced_cost(invocation))
+        for column in TOKEN_TOTALS:
+            totals[column] = _plus(totals[column], invocation.get(column))
 
-        value = invocation.get("cost_usd")
-        if isinstance(value, (int, float)) and not isinstance(value, bool):
-            cost += float(value)
-            if invocation.get("cost_status", "unknown") != "unknown":
-                cost_known = True
+    return totals
 
-    return {
-        "cost_usd": cost if cost_known else None,
-        "input_tokens": tokens["input_tokens"] if tokens_known else None,
-        "output_tokens": tokens["output_tokens"] if tokens_known else None,
-    }
+
+def _plus(total: float | None, value: Any) -> float | None:
+    """A running total with one more figure added; anything but a number adds nothing."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return total
+
+    return (total or 0.0) + float(value)
 
 
 def _first_number(metrics: Mapping[str, Any], keys: Sequence[str]) -> float | None:

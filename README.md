@@ -290,6 +290,12 @@ The worker does not report these; they are computed once at publish time.
   dashboard ignored (it reported "Unavailable"). Cost stays blank while every
   invocation reports `cost_status: unknown`, because the `0.0` in that case is a
   placeholder, not a real $0.00.
+- **prompt-cache tokens** — `cache_read_tokens` and `cache_write_tokens`, summed
+  from the same list. They stand beside the cost rather than adding to it: the
+  worker's cost already prices cache reads and writes, and its `input_tokens`
+  count only the uncached part of each prompt. A call that leaves them out
+  counts as unknown, not 0, so runs from before the worker reported the cache
+  show no cache figures at all.
 - **spend today / this week / this month**, alongside the all-time total, from
   the cost of the runs that began in each window — the run's own start, falling
   back to when it was published. Derived on read, so the windows roll over on

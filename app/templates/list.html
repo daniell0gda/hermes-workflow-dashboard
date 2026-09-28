@@ -58,6 +58,10 @@
 <dl class="metrics metrics-secondary">
   {{ ui.metric('Input tokens', summary.input_tokens | tokens) }}
   {{ ui.metric('Output tokens', summary.output_tokens | tokens) }}
+  {% if summary.cache_read_tokens is not none or summary.cache_write_tokens is not none %}
+  {{ ui.metric('Cache read', summary.cache_read_tokens | tokens) }}
+  {{ ui.metric('Cache write', summary.cache_write_tokens | tokens) }}
+  {% endif %}
   {{ ui.metric('Revisions', summary.revisions | count) }}
 </dl>
 {% endif %}

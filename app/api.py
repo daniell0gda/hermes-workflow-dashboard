@@ -56,6 +56,8 @@ def _shape_run(run: dict[str, Any]) -> dict[str, Any]:
         "cost_usd": run["cost_usd"],
         "input_tokens": run["input_tokens"],
         "output_tokens": run["output_tokens"],
+        "cache_read_tokens": run["cache_read_tokens"],
+        "cache_write_tokens": run["cache_write_tokens"],
         "url": f"/run/{run['run_id']}",
     }
 

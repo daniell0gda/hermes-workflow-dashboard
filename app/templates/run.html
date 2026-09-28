@@ -43,6 +43,9 @@
   {% endfor %}
 </nav>
 
+{# Runs from before the worker reported the prompt cache carry no cache figures at all. #}
+{% set show_cache = run.cache_read_tokens is not none or run.cache_write_tokens is not none %}
+
 <section id="overview" class="panel">
   <div class="panel-head"><h2>Overview</h2></div>
   <dl class="metrics metrics-facts" data-live="facts">
@@ -61,7 +64,17 @@
     {{ ui.metric('Cost', run.cost_usd | money) }}
     {{ ui.metric('Input tokens', run.input_tokens | tokens) }}
     {{ ui.metric('Output tokens', run.output_tokens | tokens) }}
+    {% if show_cache %}
+    {{ ui.metric('Cache read', run.cache_read_tokens | tokens) }}
+    {{ ui.metric('Cache write', run.cache_write_tokens | tokens) }}
+    {% endif %}
   </dl>
+  {% if show_cache %}
+  <p class="hint">
+    The cost already includes cache pricing. Input tokens count only the uncached part of
+    each prompt; what was read from or written to the cache is counted on its own.
+  </p>
+  {% endif %}
   {% else %}
   <p class="hint">The worker did not report token usage for this run.</p>
   {% endif %}
@@ -163,6 +176,11 @@
           <th scope="col">Model</th>
           <th scope="col" class="num">Input</th>
           <th scope="col" class="num">Output</th>
+          {% if show_cache %}
+          <th scope="col" class="num">Cache read</th>
+          <th scope="col" class="num">Cache write</th>
+          {% endif %}
+          <th scope="col" class="num">Cost</th>
         </tr>
       </thead>
       <tbody>
@@ -173,6 +191,11 @@
           <td class="dim">{{ invocation.model or dash }}</td>
           <td class="num">{{ invocation.input_tokens | count }}</td>
           <td class="num">{{ invocation.output_tokens | count }}</td>
+          {% if show_cache %}
+          <td class="num">{{ invocation.cache_read_tokens | count }}</td>
+          <td class="num">{{ invocation.cache_write_tokens | count }}</td>
+          {% endif %}
+          <td class="num">{{ invocation.cost_usd | money }}</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -181,6 +204,11 @@
           <th scope="row" colspan="3">Total</th>
           <td class="num">{{ run.input_tokens | count }}</td>
           <td class="num">{{ run.output_tokens | count }}</td>
+          {% if show_cache %}
+          <td class="num">{{ run.cache_read_tokens | count }}</td>
+          <td class="num">{{ run.cache_write_tokens | count }}</td>
+          {% endif %}
+          <td class="num">{{ run.cost_usd | money }}</td>
         </tr>
       </tfoot>
     </table>

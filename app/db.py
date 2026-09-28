@@ -10,7 +10,7 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 
 _SCHEMA_V1 = """
 CREATE TABLE runs (
@@ -105,8 +105,15 @@ ALTER TABLE runs ADD COLUMN done INTEGER NOT NULL DEFAULT 0;
 CREATE INDEX idx_runs_done ON runs(done);
 """
 
+# Prompt-cache usage. The worker's cost already prices these tokens, and its
+# input_tokens leave them out.
+_SCHEMA_V5 = """
+ALTER TABLE runs ADD COLUMN cache_read_tokens INTEGER;
+ALTER TABLE runs ADD COLUMN cache_write_tokens INTEGER;
+"""
+
 # Index i brings the database from version i to version i + 1.
-_MIGRATIONS: tuple[str, ...] = (_SCHEMA_V1, _SCHEMA_V2, _SCHEMA_V3, _SCHEMA_V4)
+_MIGRATIONS: tuple[str, ...] = (_SCHEMA_V1, _SCHEMA_V2, _SCHEMA_V3, _SCHEMA_V4, _SCHEMA_V5)
 
 
 def connect(database_path: Path) -> sqlite3.Connection:

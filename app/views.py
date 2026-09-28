@@ -24,6 +24,8 @@ DOCUMENT_GROUPS = (
     (ingest.KIND_CODER, "Coder reports"),
 )
 
+USAGE_FIELDS = ("task_id", "role", "model", *ingest.TOKEN_TOTALS)
+
 
 def _render(request: Request, template: str, context: dict[str, Any], status: int = 200) -> HTMLResponse:
     templates = request.app.state.templates
@@ -174,4 +176,13 @@ def _invocations(metrics_json: Any) -> list[dict[str, Any]]:
     if not isinstance(invocations, list):
         return []
 
-    return [item for item in invocations if isinstance(item, dict)]
+    return [_usage_row(item) for item in invocations if isinstance(item, dict)]
+
+
+def _usage_row(invocation: dict[str, Any]) -> dict[str, Any]:
+    """One worker call as the usage table shows it. A figure the call left out
+    reads as unknown, and so does a cost whose price was never resolved."""
+    return {
+        **{field: invocation.get(field) for field in USAGE_FIELDS},
+        "cost_usd": ingest.priced_cost(invocation),
+    }

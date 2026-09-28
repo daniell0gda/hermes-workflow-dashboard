@@ -43,6 +43,8 @@ RUN_COLUMNS = frozenset(
         "cost_usd",
         "input_tokens",
         "output_tokens",
+        "cache_read_tokens",
+        "cache_write_tokens",
         "error",
         "graph",
         "metrics",
@@ -266,7 +268,9 @@ class Repository:
                    AVG(NULLIF(duration_ms, 0))       AS avg_duration_ms,
                    SUM(cost_usd)                     AS cost_usd,
                    SUM(input_tokens)                 AS input_tokens,
-                   SUM(output_tokens)                AS output_tokens
+                   SUM(output_tokens)                AS output_tokens,
+                   SUM(cache_read_tokens)            AS cache_read_tokens,
+                   SUM(cache_write_tokens)           AS cache_write_tokens
             FROM runs
             WHERE {PROJECT_SQL}
             """,
@@ -295,6 +299,8 @@ class Repository:
             "spend": self.spend(project),
             "input_tokens": optional_int("input_tokens"),
             "output_tokens": optional_int("output_tokens"),
+            "cache_read_tokens": optional_int("cache_read_tokens"),
+            "cache_write_tokens": optional_int("cache_write_tokens"),
         }
 
     def spend(self, project: str = "") -> dict[str, float | None]:
