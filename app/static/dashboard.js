@@ -143,14 +143,47 @@
 
     /** A copy, so a live refresh swapping the page underneath leaves the open text alone. */
     function openReader(button) {
-        var content = button.closest('[data-readable]').querySelector('.markdown');
         var dialog = reader();
         var body = dialog.querySelector('.reader-body');
 
         dialog.querySelector('.reader-title').textContent = button.getAttribute('data-reader');
-        body.replaceChildren(content.cloneNode(true));
+        body.replaceChildren.apply(body, readerContent(button));
         dialog.showModal();
         body.scrollTop = 0;
+    }
+
+    /** The reports the button names, under their own titles when there are several; else its own text. */
+    function readerContent(button) {
+        var reports = (button.getAttribute('data-reader-reports') || '')
+            .split(' ')
+            .filter(Boolean)
+            .map(findReport)
+            .filter(Boolean);
+
+        if (reports.length === 0) {
+            return [button.closest('[data-readable]').querySelector('.markdown').cloneNode(true)];
+        }
+        if (reports.length === 1) {
+            return [reports[0].querySelector('.markdown').cloneNode(true)];
+        }
+
+        return reports.map(titledReport);
+    }
+
+    function findReport(slug) {
+        return document.querySelector('[data-report="' + slug + '"]');
+    }
+
+    function titledReport(report) {
+        var part = document.createElement('section');
+        var title = document.createElement('h2');
+
+        part.className = 'reader-part';
+        title.className = 'reader-part-title';
+        title.textContent = report.querySelector('[data-reader]').getAttribute('data-reader');
+        part.append(title, report.querySelector('.markdown').cloneNode(true));
+
+        return part;
     }
 
     /* ---------------------------------------------------------------- live */

@@ -150,6 +150,7 @@ def run_detail(
         {
             "run": run,
             "events": events,
+            "call_reports": workflow.call_reports(events, documents),
             "stages": stages,
             "documents": grouped,
             "document_groups": DOCUMENT_GROUPS,

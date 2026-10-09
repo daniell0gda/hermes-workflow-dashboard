@@ -259,3 +259,59 @@ class TestProgress:
 
     def test_empty_pipeline_is_zero(self) -> None:
         assert workflow.progress([]) == 0
+
+
+def call(seq: int, node: str, summary: str = "", status: str = "completed") -> dict:
+    return {"seq": seq, "node": node, "summary": summary, "status": status}
+
+
+def reports(*slugs: str) -> list[dict]:
+    return [{"slug": slug} for slug in slugs]
+
+
+class TestCallReports:
+    def test_every_stage_opens_the_report_its_worker_writes(self) -> None:
+        events = [
+            call(1, "planner"),
+            call(2, "coder"),
+            call(3, "checker"),
+            call(4, "team-leader"),
+            call(5, "manual-tester"),
+        ]
+        documents = reports(
+            "team-leader.report", "manual-report", "request", "plan", "check",
+            "clusters/1-calc", "coder-reports/1", "coder-reports/implementation",
+        )
+
+        assert workflow.call_reports(events, documents) == {
+            1: ["plan", "clusters/1-calc"],
+            2: ["coder-reports/1", "coder-reports/implementation"],
+            3: ["check"],
+            4: ["team-leader.report"],
+            5: ["manual-report"],
+        }
+
+    def test_a_rewritten_report_belongs_to_the_latest_call_of_its_stage(self) -> None:
+        events = [call(1, "checker"), call(2, "coder"), call(3, "checker")]
+
+        assert workflow.call_reports(events, reports("check")) == {3: ["check"]}
+
+    def test_a_cluster_report_belongs_to_the_call_that_names_its_cluster(self) -> None:
+        events = [
+            call(1, "coder", "## Cluster 1: tetra-compose-stack - done"),
+            call(2, "coder", "Re-run of cluster 2: UI-end-to-end-live-stack"),
+        ]
+        documents = reports("coder-reports/1-tetra-compose-stack", "coder-reports/2-ui-end-to-end-live-stack")
+
+        assert workflow.call_reports(events, documents) == {
+            1: ["coder-reports/1-tetra-compose-stack"],
+            2: ["coder-reports/2-ui-end-to-end-live-stack"],
+        }
+
+    def test_a_failed_call_wrote_no_report(self) -> None:
+        events = [call(1, "coder"), call(2, "coder", status="failed")]
+
+        assert workflow.call_reports(events, reports("coder-reports/1")) == {1: ["coder-reports/1"]}
+
+    def test_a_stage_without_a_report_opens_nothing(self) -> None:
+        assert workflow.call_reports([call(1, "coder")], reports("plan", "request")) == {}

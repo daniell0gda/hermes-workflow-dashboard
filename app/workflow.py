@@ -56,7 +56,16 @@ LABELS = {
 
 FAILURE_STATES = {"failed", "error", "errored", "timeout"}
 
+STAGE_REPORTS = {
+    "plan": ("plan", "clusters/"),
+    "code": ("coder-reports/",),
+    "check": ("check",),
+    "report": ("team-leader.report",),
+    "manual": ("manual-report",),
+}
+
 _UNSAFE = re.compile(r"[^a-z0-9_-]")
+_CLUSTER_NAME = re.compile(r"^\d+[-_](.+)$")
 
 
 def canonical(name: Any) -> str:
@@ -116,6 +125,46 @@ def signature(stage_list: Sequence[Mapping[str, Any]]) -> str:
     Clocks and heartbeats are left out, so it holds still while a stage runs.
     """
     return " ".join(f"{stage['key']}:{stage['state']}:{stage['passes']}" for stage in stage_list)
+
+
+def call_reports(
+    events: Sequence[Mapping[str, Any]], documents: Sequence[Mapping[str, Any]]
+) -> dict[int, list[str]]:
+    """The report slugs each worker call wrote, keyed by the call's sequence number.
+
+    A report holds only what the last call to write it left there, so it belongs to
+    the last successful call of its stage - or, for a cluster report, to the last one
+    that names its cluster. An earlier call whose report was rewritten gets none.
+    """
+    calls = _group([event for event in events if _pass_state(event) == DONE])
+    owned: dict[int, list[str]] = {}
+
+    for document in documents:
+        slug = document["slug"]
+        stage_calls = calls.get(_stage_writing(slug), [])
+        if stage_calls:
+            owned.setdefault(_writer(stage_calls, slug)["seq"], []).append(slug)
+
+    return owned
+
+
+def _stage_writing(slug: str) -> str | None:
+    for stage, families in STAGE_REPORTS.items():
+        if any(slug == family or (family.endswith("/") and slug.startswith(family)) for family in families):
+            return stage
+
+    return None
+
+
+def _writer(stage_calls: Sequence[Mapping[str, Any]], slug: str) -> Mapping[str, Any]:
+    cluster = _CLUSTER_NAME.match(slug.rsplit("/", 1)[-1])
+    if cluster:
+        name = cluster.group(1).lower()
+        naming = [call for call in stage_calls if name in str(call.get("summary") or "").lower()]
+        if naming:
+            return naming[-1]
+
+    return stage_calls[-1]
 
 
 def _group(events: Sequence[Mapping[str, Any]]) -> dict[str, list[Mapping[str, Any]]]:

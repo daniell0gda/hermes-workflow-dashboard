@@ -281,6 +281,21 @@ class TestRunDetail:
         # Named as the timeline row names it.
         assert 'data-reader="Code · call #2"' in client.get(f"/run/{RUN_ID}").text
 
+    def test_a_stage_summary_opens_full_page_on_the_report_of_that_call(
+        self, client: TestClient, auth: dict
+    ) -> None:
+        payload = sample_payload()
+        payload["documents"].append(
+            {"slug": "coder-reports/1-first", "kind": "coder", "body": "# Coder report\n"}
+        )
+        publish(client, auth, payload)
+
+        body = client.get(f"/run/{RUN_ID}").text
+
+        assert 'data-reader="Code · call #4" data-reader-reports="coder-reports/1-first"' in body
+        assert 'data-report="coder-reports/1-first"' in body
+        assert 'data-reader="Code · call #2" aria-label' in body
+
     def test_everything_rendered_as_markdown_can_open_full_page(
         self, client: TestClient, auth: dict
     ) -> None:
