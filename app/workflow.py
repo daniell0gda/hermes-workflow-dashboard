@@ -148,6 +148,19 @@ def call_reports(
     return owned
 
 
+def worker_reports(
+    events: Sequence[Mapping[str, Any]], owned: Mapping[int, Sequence[str]]
+) -> set[str]:
+    """The report slugs a worker call opens full page, out of ``call_reports``.
+
+    The leader's report is left out: it describes the run as a whole, so it stays
+    in the Reports section even though its own call opens it too.
+    """
+    stage_of = {event["seq"]: canonical(event.get("node")) for event in events}
+
+    return {slug for seq, slugs in owned.items() if stage_of.get(seq) != "report" for slug in slugs}
+
+
 def _stage_writing(slug: str) -> str | None:
     for stage, families in STAGE_REPORTS.items():
         if any(slug == family or (family.endswith("/") and slug.startswith(family)) for family in families):

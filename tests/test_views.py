@@ -32,6 +32,10 @@ def upload(client: TestClient, auth: dict, path: str, data: bytes) -> None:
     assert response.status_code == 200
 
 
+def tab_titles(body: str) -> list[str]:
+    return re.findall(r'role="tab"[^>]*>([^<]*)</button>', body)
+
+
 def reports_key(body: str) -> str:
     match = re.search(r'data-live="reports" data-live-key="([^"]*)"', body)
     assert match, "the reports region carries no stage key"
@@ -266,13 +270,51 @@ class TestRunDetail:
     def test_every_report_opens_full_page_under_its_title(
         self, client: TestClient, auth: dict
     ) -> None:
+        payload = sample_payload()
+        payload["events"][0]["status"] = "failed"
+        publish(client, auth, payload)
+
+        body = client.get(f"/run/{RUN_ID}").text
+
+        # With the planner call failed, its plan and cluster stay in the Reports section.
+        for title in ("Team-leader report", "Plan", "First"):
+            assert f'data-reader="{title}"' in body
+
+    def test_a_worker_report_leaves_the_reports_section_once_its_call_opens_it(
+        self, client: TestClient, auth: dict
+    ) -> None:
         publish(client, auth)
 
         body = client.get(f"/run/{RUN_ID}").text
 
-        # Two primary tabs and one work cluster.
-        for title in ("Team-leader report", "Plan", "First"):
-            assert f'data-reader="{title}"' in body
+        assert tab_titles(body) == ["Team-leader report"]
+        assert "Work clusters" not in body
+        assert 'data-reader="Plan · call #1" data-reader-reports="plan clusters/1-first"' in body
+        assert 'data-report="plan" data-report-title="Plan"' in body
+        assert 'data-report="clusters/1-first" data-report-title="First"' in body
+
+    def test_the_team_leader_report_stays_a_tab_although_its_call_opens_it(
+        self, client: TestClient, auth: dict
+    ) -> None:
+        publish(client, auth)
+
+        body = client.get(f"/run/{RUN_ID}").text
+
+        assert 'data-reader-reports="team-leader.report"' in body
+        assert "Team-leader report" in tab_titles(body)
+
+    def test_reports_section_is_left_out_when_every_report_belongs_to_a_worker_call(
+        self, client: TestClient, auth: dict
+    ) -> None:
+        payload = sample_payload()
+        payload["documents"] = [payload["documents"][1]]
+        publish(client, auth, payload)
+
+        body = client.get(f"/run/{RUN_ID}").text
+
+        assert 'id="reports"' not in body
+        assert 'href="#reports"' not in body
+        assert 'data-report="plan" data-report-title="Plan"' in body
 
     def test_a_stage_summary_opens_full_page_under_its_stage(
         self, client: TestClient, auth: dict
@@ -303,8 +345,9 @@ class TestRunDetail:
         publish(client, auth)
 
         body = client.get(f"/run/{RUN_ID}").text
+        opened_by_a_call = body.count('class="report-store-entry"')
 
-        assert body.count("data-reader=") == body.count('<div class="markdown">')
+        assert body.count("data-reader=") + opened_by_a_call == body.count('<div class="markdown">')
 
     def test_a_call_without_a_summary_offers_nothing_to_open(
         self, client: TestClient, auth: dict

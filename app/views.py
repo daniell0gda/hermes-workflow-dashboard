@@ -126,13 +126,20 @@ def run_detail(
     documents = repository.documents_for(identifier)
     artifacts = _with_urls(settings, repository.artifacts_for(identifier))
 
+    call_reports = workflow.call_reports(events, documents)
+    opened_by_workers = workflow.worker_reports(events, call_reports)
+
     grouped: dict[str, list[dict[str, Any]]] = {
         ingest.KIND_PRIMARY: [],
         ingest.KIND_CLUSTER: [],
         ingest.KIND_CODER: [],
     }
+    worker_documents = []
     for document in documents:
-        grouped.setdefault(document["kind"], []).append(document)
+        if document["slug"] in opened_by_workers:
+            worker_documents.append(document)
+        else:
+            grouped.setdefault(document["kind"], []).append(document)
 
     invocations = _invocations(run["metrics"])
 
@@ -141,7 +148,7 @@ def run_detail(
         sections["usage"] = "Usage"
     if artifacts:
         sections["screenshots"] = "Screenshots"
-    if documents:
+    if any(grouped.values()):
         sections["reports"] = "Reports"
 
     return _render(
@@ -150,9 +157,10 @@ def run_detail(
         {
             "run": run,
             "events": events,
-            "call_reports": workflow.call_reports(events, documents),
+            "call_reports": call_reports,
             "stages": stages,
             "documents": grouped,
+            "worker_documents": worker_documents,
             "document_groups": DOCUMENT_GROUPS,
             "media": artifacts,
             "resolve_media": _media_resolver(artifacts),

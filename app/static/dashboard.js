@@ -180,7 +180,7 @@
 
         part.className = 'reader-part';
         title.className = 'reader-part-title';
-        title.textContent = report.querySelector('[data-reader]').getAttribute('data-reader');
+        title.textContent = report.getAttribute('data-report-title');
         part.append(title, report.querySelector('.markdown').cloneNode(true));
 
         return part;
