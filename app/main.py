@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import logging
 from pathlib import Path
 from urllib.parse import urlencode
@@ -26,6 +27,7 @@ def build_templates(settings: Settings) -> Jinja2Templates:
         {
             "site_name": settings.site_name,
             "url_path": _url_path_builder(settings.root_path),
+            "static_url": _static_url_builder(settings.root_path),
             "list_url": _list_url_builder(settings.root_path),
             "health_of": formatting.health,
             "display_status": formatting.display_status,
@@ -54,6 +56,20 @@ def _url_path_builder(root_path: str):
         return f"{root_path}{path}"
 
     return url_path
+
+
+def _static_url_builder(root_path: str):
+    """Link a static file by a hash of its content, so a browser fetches it again once it changes."""
+    versions = {
+        path.name: hashlib.sha256(path.read_bytes()).hexdigest()[:12]
+        for path in (PACKAGE_DIR / "static").iterdir()
+        if path.is_file()
+    }
+
+    def static_url(name: str) -> str:
+        return f"{root_path}/static/{name}?v={versions[name]}"
+
+    return static_url
 
 
 def _list_url_builder(root_path: str):

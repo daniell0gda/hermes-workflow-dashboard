@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex, nofollow">
   <meta name="color-scheme" content="light dark">
   <title>{% block title %}{{ site_name }}{% endblock %}{% if current_project %} · {{ current_project }}{% endif %} · Team Workflow</title>
-  <link rel="stylesheet" href="{{ url_path('/static/dashboard.css') }}">
+  <link rel="stylesheet" href="{{ static_url('dashboard.css') }}">
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -55,6 +55,6 @@
   </span>
 </footer>
 
-<script src="{{ url_path('/static/dashboard.js') }}" defer></script>
+<script src="{{ static_url('dashboard.js') }}" defer></script>
 </body>
 </html>

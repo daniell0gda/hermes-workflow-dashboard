@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import re
 
 import pytest
@@ -335,3 +336,10 @@ class TestAssets:
     def test_stylesheet_and_script_are_served(self, client: TestClient) -> None:
         assert client.get("/static/dashboard.css").status_code == 200
         assert client.get("/static/dashboard.js").status_code == 200
+
+    @pytest.mark.parametrize("name", ["dashboard.css", "dashboard.js"])
+    def test_pages_link_assets_by_a_hash_of_their_content(self, client: TestClient, name: str) -> None:
+        content = client.get(f"/static/{name}").content
+        version = hashlib.sha256(content).hexdigest()[:12]
+
+        assert f'/static/{name}?v={version}"' in client.get("/").text
