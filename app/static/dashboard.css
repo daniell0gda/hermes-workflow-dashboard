@@ -856,8 +856,6 @@ th.num { text-align: right; }
 
 .readable-row { display: flex; align-items: flex-start; gap: 10px; }
 .readable-row > details { flex: 1; min-width: 0; }
-.reader-bar { display: flex; justify-content: flex-end; padding: 10px 0 2px; }
-.doc > summary .reader-open { float: right; margin: -2px 0 0 12px; }
 
 .reader {
     position: fixed;

@@ -267,18 +267,17 @@ class TestRunDetail:
 
         assert reports_key(client.get("/run/fresh-run").text) != coding
 
-    def test_every_report_opens_full_page_under_its_title(
+    def test_the_reports_section_offers_no_full_page_button(
         self, client: TestClient, auth: dict
     ) -> None:
         payload = sample_payload()
         payload["events"][0]["status"] = "failed"
         publish(client, auth, payload)
 
+        # With the planner call failed, its plan, its cluster and the team-leader report stay here.
         body = client.get(f"/run/{RUN_ID}").text
-
-        # With the planner call failed, its plan and cluster stay in the Reports section.
-        for title in ("Team-leader report", "Plan", "First"):
-            assert f'data-reader="{title}"' in body
+        for title in ("Plan", "First", "Team-leader report"):
+            assert f'data-reader="{title}"' not in body
 
     def test_a_worker_report_leaves_the_reports_section_once_its_call_opens_it(
         self, client: TestClient, auth: dict
@@ -339,15 +338,18 @@ class TestRunDetail:
         assert 'data-report="coder-reports/1-first"' in body
         assert 'data-reader="Code · call #2" aria-label' in body
 
-    def test_everything_rendered_as_markdown_can_open_full_page(
+    def test_everything_rendered_as_markdown_but_the_reports_section_can_open_full_page(
         self, client: TestClient, auth: dict
     ) -> None:
         publish(client, auth)
 
         body = client.get(f"/run/{RUN_ID}").text
         opened_by_a_call = body.count('class="report-store-entry"')
+        in_reports_section = body.count('role="tabpanel"') + body.count('<details class="doc"')
 
-        assert body.count("data-reader=") + opened_by_a_call == body.count('<div class="markdown">')
+        assert body.count("data-reader=") + opened_by_a_call + in_reports_section == body.count(
+            '<div class="markdown">'
+        )
 
     def test_a_call_without_a_summary_offers_nothing_to_open(
         self, client: TestClient, auth: dict

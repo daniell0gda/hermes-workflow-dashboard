@@ -265,8 +265,7 @@
       {% endfor %}
     </div>
     {% for document in documents.primary %}
-    <div class="tabpanel" role="tabpanel" id="doc-{{ loop.index }}" data-readable data-report="{{ document.slug }}" data-report-title="{{ document.title }}" {{ '' if loop.first else 'hidden' }}>
-      <div class="reader-bar">{{ ui.reader_button(document.title) }}</div>
+    <div class="tabpanel" role="tabpanel" id="doc-{{ loop.index }}" data-report="{{ document.slug }}" data-report-title="{{ document.title }}" {{ '' if loop.first else 'hidden' }}>
       <div class="markdown">{{ render_markdown(document.body, resolve_media) | safe }}</div>
     </div>
     {% endfor %}
@@ -279,8 +278,8 @@
   <div class="doc-group">
     <h3>{{ group_title }} <span class="pill">{{ group | length }}</span></h3>
     {% for document in group %}
-    <details class="doc" data-readable data-report="{{ document.slug }}" data-report-title="{{ document.title }}">
-      <summary>{{ document.title }} {{ ui.reader_button(document.title) }}</summary>
+    <details class="doc" data-report="{{ document.slug }}" data-report-title="{{ document.title }}">
+      <summary>{{ document.title }}</summary>
       <div class="markdown">{{ render_markdown(document.body, resolve_media) | safe }}</div>
     </details>
     {% endfor %}
