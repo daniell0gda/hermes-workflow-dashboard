@@ -54,17 +54,45 @@
 
     function copyRunId(button) {
         var value = button.getAttribute('data-copy') || '';
-        if (!navigator.clipboard) {
-            return;
-        }
 
-        navigator.clipboard.writeText(value).then(function () {
+        copyText(value).then(function (copied) {
+            if (!copied) {
+                return;
+            }
+
             var original = button.textContent;
             button.textContent = 'Copied';
             window.setTimeout(function () {
                 button.textContent = original;
             }, 1400);
         });
+    }
+
+    function copyText(value) {
+        if (window.isSecureContext && navigator.clipboard) {
+            return navigator.clipboard.writeText(value).then(function () {
+                return true;
+            }, function () {
+                return selectionCopy(value);
+            });
+        }
+
+        return Promise.resolve(selectionCopy(value));
+    }
+
+    function selectionCopy(value) {
+        var field = document.createElement('textarea');
+        field.value = value;
+        field.setAttribute('readonly', '');
+        field.style.position = 'fixed';
+        field.style.opacity = '0';
+        document.body.appendChild(field);
+        field.select();
+
+        var copied = document.execCommand('copy');
+        field.remove();
+
+        return copied;
     }
 
     function selectTab(tab) {
