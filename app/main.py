@@ -11,7 +11,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from . import api, db, formatting, views, workflow
+from . import __version__, api, db, formatting, views, workflow
 from .config import Settings, load_settings, prepare_data_dir
 from .markdown_render import renderer
 
@@ -100,7 +100,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app = FastAPI(
         title="Hermes Team Workflow Dashboard",
-        version="1.0.0",
+        version=__version__,
         root_path=settings.root_path,
         docs_url="/api/docs",
         openapi_url="/api/openapi.json",
